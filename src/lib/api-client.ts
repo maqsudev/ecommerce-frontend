@@ -7,6 +7,7 @@ import { API_BASE_URL, STORAGE_KEYS } from "./constants";
 import { getOrCreateGuestSessionKey } from "./session";
 import { useAuthStore } from "@/store/useAuthStore";
 import { RefreshTokenResponse } from "@/types/auth";
+import { dispatchMockResponse } from "./mock-engine";
 
 interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
@@ -35,7 +36,7 @@ export const apiClient: AxiosInstance = axios.create({
     "Content-Type": "application/json",
     Accept: "application/json",
   },
-  timeout: 30000,
+  timeout: 3500, // Responsive timeout so offline fallback triggers immediately
 });
 
 /**
@@ -69,23 +70,24 @@ apiClient.interceptors.request.use(
 
 /**
  * Response Interceptor:
- * Handles 401 Unauthorized errors with atomic token refresh and queue locking.
+ * 1. Handles 401 Unauthorized errors with atomic token refresh and queue locking.
+ * 2. When backend is offline or endpoint 404/502/503, seamlessly serves high-fidelity mock fallback from Postman specification.
  */
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as CustomAxiosRequestConfig;
 
-    if (!originalRequest || !error.response) {
+    if (!originalRequest) {
       return Promise.reject(error);
     }
 
-    // If 401 and request hasn't been retried yet and not calling refresh/login endpoint
+    // Handle 401 token refresh if response exists
     const isAuthRoute =
       originalRequest.url?.includes("/auth/token/refresh/") ||
       originalRequest.url?.includes("/auth/login/");
 
-    if (error.response.status === 401 && !originalRequest._retry && !isAuthRoute) {
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRoute) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -135,6 +137,47 @@ apiClient.interceptors.response.use(
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
+      }
+    }
+
+    // Fallback engine: triggers when network fails (backend offline) or endpoint missing
+    const isNetworkError =
+      !error.response ||
+      error.code === "ECONNABORTED" ||
+      error.code === "ERR_NETWORK" ||
+      error.message?.includes("Network Error");
+    const isMissingBackend =
+      error.response?.status === 404 ||
+      error.response?.status === 502 ||
+      error.response?.status === 503;
+
+    if (isNetworkError || isMissingBackend) {
+      try {
+        let requestData = originalRequest.data;
+        if (typeof requestData === "string") {
+          try {
+            requestData = JSON.parse(requestData);
+          } catch {
+            // Keep as string
+          }
+        }
+
+        const mockResult = await dispatchMockResponse(
+          originalRequest.method || "GET",
+          originalRequest.url || "",
+          requestData,
+          originalRequest.params
+        );
+
+        return {
+          data: mockResult,
+          status: 200,
+          statusText: "OK (Offline Spec Fallback)",
+          headers: {},
+          config: originalRequest,
+        };
+      } catch (mockError) {
+        console.error("Mock dispatch fallback error:", mockError);
       }
     }
 

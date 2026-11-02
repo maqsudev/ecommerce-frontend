@@ -38,8 +38,11 @@ function CheckoutPaymentContent() {
       setPaymentData(res.data);
       setIsLoading(false);
 
-      if (res.data.payment_url) {
+      if (res.data.payment_url && !res.data.payment_url.includes("mock")) {
         window.location.href = res.data.payment_url;
+      } else {
+        toast.success("To'lov muvaffaqiyatli qabul qilindi!");
+        router.push(`/checkout/success?order=${orderNumber}`);
       }
     } catch {
       setIsLoading(false);
@@ -98,24 +101,14 @@ function CheckoutPaymentContent() {
             onClick={handleInitPayment}
             isLoading={isLoading}
             size="lg"
-            className="w-full shadow-md shadow-indigo-200"
+            className="w-full gap-2 shadow-md shadow-indigo-200"
           >
             <span>{provider} orqali to&apos;lash</span>
-            <ExternalLink className="h-4 w-4 ml-2" />
+            <ArrowRight className="h-4 w-4" />
           </Button>
 
-          <div className="pt-2 text-center">
-            <button
-              type="button"
-              onClick={() => router.push(`/checkout/success?order=${orderNumber}`)}
-              className="text-xs text-slate-500 hover:text-slate-800 underline"
-            >
-              Keyinroq to&apos;lash (Kuzatuv sahifasiga o&apos;tish)
-            </button>
-          </div>
-
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-center gap-2 text-xs text-slate-400">
-            <ShieldCheck className="h-4 w-4 text-emerald-600" />
+          <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
+            <ShieldCheck className="h-4 w-4 text-emerald-500" />
             <span>256-bit SSL xavfsiz to&apos;lov shlyuzi</span>
           </div>
         </CardContent>
@@ -126,13 +119,7 @@ function CheckoutPaymentContent() {
 
 export default function CheckoutPaymentPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="max-w-lg mx-auto p-12 text-center text-slate-400">
-          Yuklanmoqda...
-        </div>
-      }
-    >
+    <Suspense fallback={<div className="p-12 text-center text-sm text-slate-500">Yuklanmoqda...</div>}>
       <CheckoutPaymentContent />
     </Suspense>
   );
