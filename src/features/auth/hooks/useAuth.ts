@@ -23,7 +23,7 @@ export function useAuth() {
 
   const handleAuthSuccess = async (data: AuthResponse, successMessage: string) => {
     // If the backend returns access & refresh tokens directly
-    if (data.access) {
+    if (data.access && data.refresh && data.user) {
       setAuth(data.user, {
         access: data.access,
         refresh: data.refresh,
@@ -44,38 +44,103 @@ export function useAuth() {
       handleAuthSuccess(data, "Tizimga muvaffaqiyatli kirdingiz!");
     },
     onError: (error: any) => {
-      const msg =
-        error.response?.data?.detail ||
-        error.response?.data?.message ||
-        "Kirish ma'lumotlari noto'g'ri!";
+      const errorData = error.response?.data;
+      let msg = "Kirish ma'lumotlari noto'g'ri!";
+      if (typeof errorData === "string") {
+        msg = errorData;
+      } else if (errorData && typeof errorData === "object") {
+        if (errorData.detail) {
+          msg = errorData.detail;
+        } else if (errorData.message) {
+          msg = errorData.message;
+        } else if (errorData.non_field_errors) {
+          msg = Array.isArray(errorData.non_field_errors)
+            ? errorData.non_field_errors.join(", ")
+            : errorData.non_field_errors;
+        }
+      }
       toast.error(msg);
     },
   });
 
   const registerMutation = useMutation({
     mutationFn: (payload: RegisterPayload) => authService.register(payload),
-    onSuccess: (data) => {
-      handleAuthSuccess(data, "Akkauntingiz muvaffaqiyatli yaratildi!");
+    onSuccess: (data: AuthResponse, variables: RegisterPayload) => {
+      if (data?.access && data?.user) {
+        handleAuthSuccess(data, "Akkauntingiz muvaffaqiyatli yaratildi!");
+      } else {
+        const targetEmail = data?.email || variables?.email;
+        if (data?.otp_code) {
+          toast.success(
+            `Tasdiqlash kodi: ${data.otp_code} (ishlab chiqish rejimi)`,
+            { duration: 8000 }
+          );
+        } else {
+          toast.success(
+            data?.message || "Akkaunt yaratildi! Emailingizga tasdiqlash kodi yuborildi."
+          );
+        }
+        if (targetEmail) {
+          router.push(`/verify-otp?email=${encodeURIComponent(targetEmail)}`);
+        } else {
+          router.push("/login");
+        }
+      }
     },
     onError: (error: any) => {
-      const msg =
-        error.response?.data?.detail ||
-        error.response?.data?.message ||
-        "Ro'yxatdan o'tishda xatolik yuz berdi.";
+      const errorData = error.response?.data;
+      let msg = "Ro'yxatdan o'tishda xatolik yuz berdi.";
+      if (typeof errorData === "string") {
+        msg = errorData;
+      } else if (errorData && typeof errorData === "object") {
+        if (errorData.detail) {
+          msg = errorData.detail;
+        } else if (errorData.message) {
+          msg = errorData.message;
+        } else {
+          const messages: string[] = [];
+          for (const [key, val] of Object.entries(errorData)) {
+            if (Array.isArray(val)) {
+              messages.push(`${key}: ${val.join(", ")}`);
+            } else if (typeof val === "string") {
+              messages.push(`${key}: ${val}`);
+            }
+          }
+          if (messages.length > 0) {
+            msg = messages.join(" | ");
+          }
+        }
+      }
       toast.error(msg);
     },
   });
 
   const sendOtpMutation = useMutation({
     mutationFn: (payload: SendOTPPayload) => authService.sendOtp(payload),
-    onSuccess: () => {
-      toast.success("Tasdiqlash kodi emailingizga yuborildi!");
+    onSuccess: (data: any) => {
+      if (data?.otp_code) {
+        toast.success(
+          `Yangi tasdiqlash kodi: ${data.otp_code} (ishlab chiqish rejimi)`,
+          { duration: 8000 }
+        );
+      } else {
+        toast.success(data?.message || "Tasdiqlash kodi emailingizga yuborildi!");
+      }
     },
     onError: (error: any) => {
-      const msg =
-        error.response?.data?.detail ||
-        error.response?.data?.message ||
-        "Kodni yuborishda xatolik yuz berdi.";
+      const errorData = error.response?.data;
+      let msg = "Kodni yuborishda xatolik yuz berdi.";
+      if (typeof errorData === "string") {
+        msg = errorData;
+      } else if (errorData && typeof errorData === "object") {
+        if (errorData.detail) {
+          msg = errorData.detail;
+        } else if (errorData.message) {
+          msg = errorData.message;
+        } else if (errorData.email) {
+          msg = Array.isArray(errorData.email) ? errorData.email.join(", ") : errorData.email;
+        }
+      }
       toast.error(msg);
     },
   });

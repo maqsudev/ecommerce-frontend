@@ -137,7 +137,7 @@ function VerifyOtpContent() {
           </Button>
 
           {/* Resend Code Section */}
-          <div className="text-center pt-2">
+          <div className="text-center pt-2 space-y-2">
             {countdown > 0 ? (
               <p className="text-xs text-slate-500">
                 Kodni qayta yuborish:{" "}
@@ -154,6 +154,9 @@ function VerifyOtpContent() {
                 Kodni qayta yuborish
               </button>
             )}
+            <p className="text-[11px] text-slate-400">
+              Xat kelmadimi? Pochtaning <strong>Spam</strong> (Keraksiz xatlar) bo&apos;limini ham tekshirib ko&apos;ring.
+            </p>
           </div>
         </form>
 

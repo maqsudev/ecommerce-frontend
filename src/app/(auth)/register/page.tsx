@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { User as UserIcon, Mail, Lock, ShieldCheck } from "lucide-react";
+import { User as UserIcon, Mail, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,6 @@ export default function RegisterPage() {
     firstName: "",
     lastName: "",
     email: "",
-    password: "",
     termsAccepted: false,
   });
 
@@ -23,7 +22,6 @@ export default function RegisterPage() {
     firstName?: string;
     lastName?: string;
     email?: string;
-    password?: string;
     termsAccepted?: string;
   }>({});
 
@@ -33,9 +31,6 @@ export default function RegisterPage() {
     if (!formData.lastName.trim()) errs.lastName = "Familiyangizni kiriting";
     if (!formData.email.trim()) errs.email = "Email kiritilishi shart";
     else if (!/\S+@\S+\.\S+/.test(formData.email)) errs.email = "Email formati noto'g'ri";
-    if (!formData.password) errs.password = "Parol kiritilishi shart";
-    else if (formData.password.length < 8)
-      errs.password = "Parol kamida 8 ta belgidan iborat bo'lishi kerak";
     if (!formData.termsAccepted)
       errs.termsAccepted = "Foydalanish shartlariga rozilik bildiring";
 
@@ -51,7 +46,6 @@ export default function RegisterPage() {
       first_name: formData.firstName,
       last_name: formData.lastName,
       email: formData.email,
-      password: formData.password,
     });
   };
 
@@ -62,11 +56,19 @@ export default function RegisterPage() {
           Ro&apos;yxatdan o&apos;tish
         </CardTitle>
         <CardDescription className="text-slate-500">
-          Tezkor va xavfsiz onlayn xaridlar uchun hisob yarating
+          Parol eslab qolish shart emas — emailingizga bir martalik tasdiqlash kodi yuboriladi
         </CardDescription>
       </CardHeader>
 
       <CardContent className="pt-4">
+        {/* Info banner */}
+        <div className="mb-5 flex items-start gap-3 rounded-xl bg-indigo-50/70 p-3.5 border border-indigo-100 text-xs text-indigo-900">
+          <Sparkles className="h-4 w-4 text-indigo-600 mt-0.5 shrink-0" />
+          <p>
+            Ma&apos;lumotlaringizni kiriting. Email manzilingizga hisobni tasdiqlash uchun xavfsiz 6 xonali kod yuboriladi.
+          </p>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <Input
@@ -99,19 +101,8 @@ export default function RegisterPage() {
               setFormData({ ...formData, email: e.target.value })
             }
             error={errors.email}
+            helperText="Tasdiqlash kodi shu manzilga yuboriladi"
             leftIcon={<Mail className="h-4 w-4" />}
-          />
-
-          <Input
-            label="Maxfiy parol"
-            type="password"
-            placeholder="Kamida 8 ta belgi"
-            value={formData.password}
-            onChange={(e) =>
-              setFormData({ ...formData, password: e.target.value })
-            }
-            error={errors.password}
-            leftIcon={<Lock className="h-4 w-4" />}
           />
 
           <div className="space-y-1 pt-1">
@@ -150,7 +141,7 @@ export default function RegisterPage() {
             isLoading={isRegistering}
           >
             <ShieldCheck className="h-4 w-4 mr-2" />
-            Hisob yaratish
+            Tasdiqlash kodini olish
           </Button>
         </form>
 

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, KeyRound, Sparkles } from "lucide-react";
+import { Mail, Lock, KeyRound, Sparkles, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,19 +13,11 @@ export default function LoginPage() {
   const router = useRouter();
   const { login, isLoggingIn, sendOtp, isSendingOtp } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<"password" | "otp">("password");
+  // Default to passwordless OTP login
+  const [activeTab, setActiveTab] = useState<"otp" | "password">("otp");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-
-  const validatePasswordForm = () => {
-    const errs: { email?: string; password?: string } = {};
-    if (!email) errs.email = "Email kiritilishi shart";
-    else if (!/\S+@\S+\.\S+/.test(email)) errs.email = "Email formati noto'g'ri";
-    if (!password) errs.password = "Parol kiritilishi shart";
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
 
   const validateOtpForm = () => {
     const errs: { email?: string } = {};
@@ -35,10 +27,13 @@ export default function LoginPage() {
     return Object.keys(errs).length === 0;
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validatePasswordForm()) return;
-    login({ email, password });
+  const validatePasswordForm = () => {
+    const errs: { email?: string; password?: string } = {};
+    if (!email) errs.email = "Email kiritilishi shart";
+    else if (!/\S+@\S+\.\S+/.test(email)) errs.email = "Email formati noto'g'ri";
+    if (!password) errs.password = "Parol kiritilishi shart";
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
   const handleOtpSubmit = (e: React.FormEvent) => {
@@ -54,6 +49,12 @@ export default function LoginPage() {
     );
   };
 
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validatePasswordForm()) return;
+    login({ email, password });
+  };
+
   return (
     <Card className="border-slate-200/90 shadow-xl shadow-slate-200/50">
       <CardHeader className="text-center pb-2">
@@ -61,13 +62,25 @@ export default function LoginPage() {
           Tizimga kirish
         </CardTitle>
         <CardDescription className="text-slate-500">
-          Shaxsiy kabinetingizga kirish usulini tanlang
+          Emailingizga bir martalik kod yuboriladi, parol kiritish shart emas
         </CardDescription>
       </CardHeader>
 
       <CardContent className="pt-4">
         {/* Method Switcher Tabs */}
         <div className="flex rounded-xl bg-slate-100 p-1 mb-6">
+          <button
+            type="button"
+            onClick={() => setActiveTab("otp")}
+            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === "otp"
+                ? "bg-white text-indigo-600 shadow-sm"
+                : "text-slate-500 hover:text-slate-900"
+            }`}
+          >
+            <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+            Emailga kod orqali (OTP)
+          </button>
           <button
             type="button"
             onClick={() => setActiveTab("password")}
@@ -79,21 +92,32 @@ export default function LoginPage() {
           >
             Parol bilan
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("otp")}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-              activeTab === "otp"
-                ? "bg-white text-indigo-600 shadow-sm"
-                : "text-slate-500 hover:text-slate-900"
-            }`}
-          >
-            <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-            Bir martalik OTP
-          </button>
         </div>
 
-        {activeTab === "password" ? (
+        {activeTab === "otp" ? (
+          <form onSubmit={handleOtpSubmit} className="space-y-4">
+            <Input
+              label="Email manzilingiz"
+              type="email"
+              placeholder="user@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              error={errors.email}
+              helperText="Kiritilgan emailga 6 xonali tasdiqlash kodi yuboriladi"
+              leftIcon={<Mail className="h-4 w-4" />}
+            />
+
+            <Button
+              type="submit"
+              className="w-full mt-2"
+              size="lg"
+              isLoading={isSendingOtp}
+            >
+              <KeyRound className="h-4 w-4 mr-2" />
+              Tasdiqlash kodini olish
+            </Button>
+          </form>
+        ) : (
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <Input
               label="Email manzilingiz"
@@ -121,30 +145,8 @@ export default function LoginPage() {
               size="lg"
               isLoading={isLoggingIn}
             >
+              <ShieldCheck className="h-4 w-4 mr-2" />
               Kirish
-            </Button>
-          </form>
-        ) : (
-          <form onSubmit={handleOtpSubmit} className="space-y-4">
-            <Input
-              label="Email manzilingiz"
-              type="email"
-              placeholder="user@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              error={errors.email}
-              helperText="Kiritilgan emailga 6 xonali tasdiqlash kodi yuboriladi"
-              leftIcon={<Mail className="h-4 w-4" />}
-            />
-
-            <Button
-              type="submit"
-              className="w-full mt-2"
-              size="lg"
-              isLoading={isSendingOtp}
-            >
-              <KeyRound className="h-4 w-4 mr-2" />
-              Tasdiqlash kodini olish
             </Button>
           </form>
         )}

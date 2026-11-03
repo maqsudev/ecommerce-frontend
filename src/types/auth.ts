@@ -20,6 +20,7 @@ export interface RegisterPayload {
   first_name: string;
   last_name: string;
   password?: string;
+  password_confirm?: string;
   phone_number?: string;
 }
 
@@ -38,10 +39,12 @@ export interface VerifyOTPPayload {
 }
 
 export interface AuthResponse {
-  access: string;
-  refresh: string;
-  user: User;
+  access?: string;
+  refresh?: string;
+  user?: User;
   message?: string;
+  email?: string;
+  otp_code?: string;
 }
 
 export interface RefreshTokenPayload {
